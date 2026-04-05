@@ -84,27 +84,49 @@ button {
   gap: 1rem;
 }
 
+.post-meta-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .thought time {
   font-size: 0.92rem;
   color: var(--muted);
   text-align: right;
 }
 
+.delete-icon-form {
+  margin: 0;
+}
+
+.delete-icon-button {
+  width: 1.9rem;
+  height: 1.9rem;
+  margin-top: 0;
+  padding: 0.3rem;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+}
+
+.delete-icon-button:hover {
+  color: var(--danger);
+  border-color: #e8d2d2;
+  background: #fff8f8;
+}
+
+.delete-icon-button svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
 .meta {
   margin: 0.35rem 0 0.8rem;
   color: var(--muted);
   font-size: 0.92rem;
-}
-
-.delete-form {
-  margin-top: 0.9rem;
-}
-
-.delete-button {
-  width: auto;
-  margin-top: 0;
-  background: var(--danger);
-  padding: 0.5rem 0.8rem;
 }
 
 .markdown-body :first-child {
