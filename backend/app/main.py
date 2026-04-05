@@ -25,6 +25,7 @@ def _collection_name() -> str:
 class ThoughtCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     content: str = Field(min_length=1)
+    location: str | None = Field(default=None, max_length=250)
     published_at: datetime | None = None
 
 
@@ -33,6 +34,7 @@ class ThoughtOut(BaseModel):
     title: str
     content: str
     content_html: str
+    location: str | None = None
     published_at: datetime
 
 
@@ -52,9 +54,11 @@ def create_thought(payload: ThoughtCreate) -> ThoughtOut:
         db = _get_db()
         collection = db.collection(_collection_name())
         published_at = payload.published_at or datetime.now(timezone.utc)
+        location = payload.location.strip() if payload.location else None
         doc = {
             "title": payload.title,
             "content": payload.content,
+            "location": location,
             "published_at": published_at,
             "created_at": datetime.now(timezone.utc),
         }
@@ -66,6 +70,7 @@ def create_thought(payload: ThoughtCreate) -> ThoughtOut:
             title=payload.title,
             content=payload.content,
             content_html=md.markdown(payload.content, extensions=["extra", "sane_lists"]),
+            location=location,
             published_at=published_at,
         )
     except Exception as exc:
@@ -90,9 +95,26 @@ def list_thoughts() -> list[ThoughtOut]:
                     title=item.get("title", "Untitled"),
                     content=item.get("content", ""),
                     content_html=md.markdown(item.get("content", ""), extensions=["extra", "sane_lists"]),
+                    location=item.get("location"),
                     published_at=published_at,
                 )
             )
         return out
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"failed to list thoughts: {exc}") from exc
+
+
+@app.delete("/api/v1/thoughts/{thought_id}")
+def delete_thought(thought_id: str) -> dict[str, str]:
+    try:
+        db = _get_db()
+        ref = db.collection(_collection_name()).document(thought_id)
+        snapshot = ref.get()
+        if not snapshot.exists:
+            raise HTTPException(status_code=404, detail="thought not found")
+        ref.delete()
+        return {"status": "deleted", "id": thought_id}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"failed to delete thought: {exc}") from exc

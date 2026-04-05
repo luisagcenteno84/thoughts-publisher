@@ -18,6 +18,13 @@
           <label for="content">Content (Markdown)</label>
           <textarea id="content" name="content" required placeholder="# Today I learned...&#10;&#10;- thing one"></textarea>
 
+          <label for="location">Location</label>
+          <select id="location" name="location" aria-describedby="location-help">
+            <option value="" selected>Detecting device location...</option>
+            <option value="">No location</option>
+          </select>
+          <p id="location-help" class="muted location-help">Default uses your browser location when permission is granted.</p>
+
           <button type="submit">Publish</button>
         </form>
       </section>
@@ -37,14 +44,53 @@
           <article class="card thought">
             <header>
               <h3>{{ item.title }}</h3>
-              <time datetime="{{ item.published_at }}">{{ item.published_at[:10] }}</time>
+              <time datetime="{{ item.published_at }}">{{ item.published_display }}</time>
             </header>
+            {% if item.location %}
+            <p class="meta">Location: {{ item.location }}</p>
+            {% endif %}
             <div class="markdown-body">{{ item.content_html | safe }}</div>
+            <form method="post" action="/thoughts/{{ item.id }}/delete" class="delete-form" onsubmit="return confirm('Delete this thought?');">
+              <button type="submit" class="delete-button">Delete</button>
+            </form>
           </article>
           {% endfor %}
         </div>
         {% endfor %}
       </section>
     </main>
+
+    <script>
+      (function () {
+        const select = document.getElementById("location");
+        const help = document.getElementById("location-help");
+
+        if (!select || !help || !navigator.geolocation) {
+          if (help) {
+            help.textContent = "Location services are unavailable in this browser.";
+          }
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          function (position) {
+            const lat = position.coords.latitude.toFixed(4);
+            const lon = position.coords.longitude.toFixed(4);
+            const value = "Lat " + lat + ", Lon " + lon;
+            select.options[0].text = "Use device location (" + value + ")";
+            select.options[0].value = value;
+            select.options[0].selected = true;
+            help.textContent = "Device location detected and selected by default.";
+          },
+          function () {
+            select.options[0].text = "Device location unavailable";
+            select.options[0].value = "";
+            select.options[0].selected = true;
+            help.textContent = "Could not access location. You can still post without it.";
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      })();
+    </script>
   </body>
 </html>

@@ -6,6 +6,7 @@
   --line: #e5dccf;
   --accent: #a63d40;
   --accent-ink: #ffffff;
+  --danger: #7f1d1d;
 }
 
 * {
@@ -48,6 +49,7 @@ label {
 
 input,
 textarea,
+select,
 button {
   width: 100%;
   border-radius: 10px;
@@ -82,6 +84,29 @@ button {
   gap: 1rem;
 }
 
+.thought time {
+  font-size: 0.92rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.meta {
+  margin: 0.35rem 0 0.8rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.delete-form {
+  margin-top: 0.9rem;
+}
+
+.delete-button {
+  width: auto;
+  margin-top: 0;
+  background: var(--danger);
+  padding: 0.5rem 0.8rem;
+}
+
 .markdown-body :first-child {
   margin-top: 0;
 }
@@ -95,6 +120,12 @@ button {
 
 .muted {
   color: var(--muted);
+}
+
+.location-help {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+  font-size: 0.9rem;
 }
 
 @media (min-width: 900px) {
