@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thoughts</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="composer card">
+        <h1>Publish a Thought</h1>
+        <p class="muted">Write in Markdown. Your latest thoughts appear first.</p>
+        <form method="post" action="/thoughts">
+          <label for="title">Title</label>
+          <input id="title" name="title" required maxlength="200" placeholder="A short title" />
+
+          <label for="content">Content (Markdown)</label>
+          <textarea id="content" name="content" required placeholder="# Today I learned...&#10;&#10;- thing one"></textarea>
+
+          <button type="submit">Publish</button>
+        </form>
+      </section>
+
+      <section class="feed">
+        {% if groups|length == 0 %}
+        <article class="card">
+          <h2>No thoughts yet</h2>
+          <p class="muted">Start by publishing your first one above.</p>
+        </article>
+        {% endif %}
+
+        {% for month, items in groups %}
+        <div class="month-group">
+          <h2>{{ month }}</h2>
+          {% for item in items %}
+          <article class="card thought">
+            <header>
+              <h3>{{ item.title }}</h3>
+              <time datetime="{{ item.published_at }}">{{ item.published_at[:10] }}</time>
+            </header>
+            <div class="markdown-body">{{ item.content_html | safe }}</div>
+          </article>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </section>
+    </main>
+  </body>
+</html>
