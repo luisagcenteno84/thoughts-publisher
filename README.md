@@ -9,6 +9,43 @@ A two-service Python FastAPI app to capture and publish thoughts with markdown c
 - Firestore collection default: `items`
 - Deploy target: Cloud Run (frontend + backend)
 
+## Visual Architecture (GCP)
+
+```mermaid
+flowchart LR
+    U[User Browser or Mobile Browser]
+    GH[GitHub Repo<br/>thoughts-publisher]
+    CBT[Cloud Build Trigger<br/>thoughts-publisher-main-deploy]
+    CB[Cloud Build Pipeline<br/>cloudbuild.yaml]
+    AR[Artifact Registry<br/>app-images]
+
+    subgraph GCP[Google Cloud Project: thoughts-publisher]
+      FE[Cloud Run Service<br/>thoughts-publisher-frontend]
+      BE[Cloud Run Service<br/>thoughts-publisher-backend]
+      FS[Cloud Firestore<br/>Collection: items]
+    end
+
+    U -->|HTTPS| FE
+    FE -->|REST calls /api/v1/thoughts| BE
+    BE -->|Read and write thoughts| FS
+
+    GH -->|Push to main| CBT
+    CBT --> CB
+    CB -->|Build container images| AR
+    CB -->|Deploy frontend image| FE
+    CB -->|Deploy backend image| BE
+```
+
+### Component + Product Mapping
+
+- `frontend/app/main.py` -> **Cloud Run** service `thoughts-publisher-frontend` (us-central1)
+- `backend/app/main.py` -> **Cloud Run** service `thoughts-publisher-backend` (us-central1)
+- Thought storage (`items`) -> **Cloud Firestore** (Native mode, us-central1)
+- Build/deploy automation -> **Cloud Build** (`cloudbuild.yaml`)
+- Container image storage -> **Artifact Registry** repo `app-images`
+- CI/CD event source -> **Cloud Build GitHub Trigger** `thoughts-publisher-main-deploy`
+- Source control -> **GitHub** repo `luisagcenteno84/thoughts-publisher` (after auth + repo creation)
+
 ## Endpoints
 
 Backend:
