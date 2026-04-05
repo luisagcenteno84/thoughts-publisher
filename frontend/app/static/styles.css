@@ -101,20 +101,20 @@ button {
 }
 
 .delete-icon-button {
-  width: 1.9rem;
-  height: 1.9rem;
+  width: 0.95rem;
+  height: 0.95rem;
   margin-top: 0;
-  padding: 0.3rem;
-  border-radius: 999px;
+  padding: 0;
+  border-radius: 0;
   background: transparent;
   color: var(--muted);
-  border: 1px solid transparent;
+  border: none;
+  opacity: 0.75;
 }
 
 .delete-icon-button:hover {
   color: var(--danger);
-  border-color: #e8d2d2;
-  background: #fff8f8;
+  opacity: 1;
 }
 
 .delete-icon-button svg {

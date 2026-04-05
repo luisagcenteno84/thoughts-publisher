@@ -75,12 +75,41 @@ async def home(request: Request) -> Any:
 
 @app.post("/thoughts")
 async def create_thought(
-    title: str = Form(...), content: str = Form(...), location: str = Form(default="")
+    title: str = Form(...),
+    content: str = Form(...),
+    location: str = Form(default=""),
+    location_city: str = Form(default=""),
+    location_state: str = Form(default=""),
+    location_country: str = Form(default=""),
+    location_lat: str = Form(default=""),
+    location_lon: str = Form(default=""),
 ) -> RedirectResponse:
     payload: dict[str, Any] = {"title": title, "content": content}
+
     location_clean = location.strip()
     if location_clean:
         payload["location"] = location_clean
+
+    for key, raw in {
+        "location_city": location_city,
+        "location_state": location_state,
+        "location_country": location_country,
+    }.items():
+        cleaned = raw.strip()
+        if cleaned:
+            payload[key] = cleaned
+
+    if location_lat.strip():
+        try:
+            payload["location_lat"] = float(location_lat)
+        except ValueError:
+            pass
+
+    if location_lon.strip():
+        try:
+            payload["location_lon"] = float(location_lon)
+        except ValueError:
+            pass
 
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(f"{BACKEND_BASE_URL}/api/v1/thoughts", json=payload)

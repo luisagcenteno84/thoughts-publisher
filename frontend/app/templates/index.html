@@ -25,6 +25,12 @@
           </select>
           <p id="location-help" class="muted location-help">Default uses your browser location when permission is granted.</p>
 
+          <input type="hidden" id="location_city" name="location_city" />
+          <input type="hidden" id="location_state" name="location_state" />
+          <input type="hidden" id="location_country" name="location_country" />
+          <input type="hidden" id="location_lat" name="location_lat" />
+          <input type="hidden" id="location_lon" name="location_lon" />
+
           <button type="submit">Publish</button>
         </form>
       </section>
@@ -70,28 +76,80 @@
       (function () {
         const select = document.getElementById("location");
         const help = document.getElementById("location-help");
+        const cityField = document.getElementById("location_city");
+        const stateField = document.getElementById("location_state");
+        const countryField = document.getElementById("location_country");
+        const latField = document.getElementById("location_lat");
+        const lonField = document.getElementById("location_lon");
+
+        function clearMetadata() {
+          cityField.value = "";
+          stateField.value = "";
+          countryField.value = "";
+          latField.value = "";
+          lonField.value = "";
+        }
+
+        function pickAddressPart(address, keys) {
+          for (const key of keys) {
+            if (address[key]) return address[key];
+          }
+          return "";
+        }
+
+        function setDetectedLocation(label, city, state, country, lat, lon) {
+          select.options[0].text = "Use device location (" + label + ")";
+          select.options[0].value = label;
+          select.options[0].selected = true;
+          cityField.value = city;
+          stateField.value = state;
+          countryField.value = country;
+          latField.value = String(lat);
+          lonField.value = String(lon);
+        }
 
         if (!select || !help || !navigator.geolocation) {
-          if (help) {
-            help.textContent = "Location services are unavailable in this browser.";
-          }
+          help.textContent = "Location services are unavailable in this browser.";
+          clearMetadata();
           return;
         }
 
+        select.addEventListener("change", function () {
+          if (!select.value) {
+            clearMetadata();
+          }
+        });
+
         navigator.geolocation.getCurrentPosition(
-          function (position) {
-            const lat = position.coords.latitude.toFixed(4);
-            const lon = position.coords.longitude.toFixed(4);
-            const value = "Lat " + lat + ", Lon " + lon;
-            select.options[0].text = "Use device location (" + value + ")";
-            select.options[0].value = value;
-            select.options[0].selected = true;
-            help.textContent = "Device location detected and selected by default.";
+          async function (position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            try {
+              const url = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=" + encodeURIComponent(lat) + "&lon=" + encodeURIComponent(lon);
+              const response = await fetch(url, { headers: { Accept: "application/json" } });
+              if (!response.ok) throw new Error("reverse-geocode failed");
+
+              const data = await response.json();
+              const address = data.address || {};
+              const city = pickAddressPart(address, ["city", "town", "village", "hamlet", "county"]);
+              const state = pickAddressPart(address, ["state", "region", "province", "state_district"]);
+              const country = pickAddressPart(address, ["country"]);
+              const label = [city, state, country].filter(Boolean).join(", ") || ("Lat " + lat.toFixed(4) + ", Lon " + lon.toFixed(4));
+
+              setDetectedLocation(label, city, state, country, lat, lon);
+              help.textContent = "Device location detected and selected by default.";
+            } catch (err) {
+              const fallback = "Lat " + lat.toFixed(4) + ", Lon " + lon.toFixed(4);
+              setDetectedLocation(fallback, "", "", "", lat, lon);
+              help.textContent = "Detected coordinates only; city/state/country lookup unavailable.";
+            }
           },
           function () {
             select.options[0].text = "Device location unavailable";
             select.options[0].value = "";
             select.options[0].selected = true;
+            clearMetadata();
             help.textContent = "Could not access location. You can still post without it.";
           },
           { enableHighAccuracy: true, timeout: 10000 }

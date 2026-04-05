@@ -22,10 +22,22 @@ def _collection_name() -> str:
     return os.getenv("FIRESTORE_COLLECTION", DEFAULT_COLLECTION)
 
 
+def _clean(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = value.strip()
+    return cleaned or None
+
+
 class ThoughtCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     content: str = Field(min_length=1)
     location: str | None = Field(default=None, max_length=250)
+    location_city: str | None = Field(default=None, max_length=120)
+    location_state: str | None = Field(default=None, max_length=120)
+    location_country: str | None = Field(default=None, max_length=120)
+    location_lat: float | None = None
+    location_lon: float | None = None
     published_at: datetime | None = None
 
 
@@ -35,6 +47,7 @@ class ThoughtOut(BaseModel):
     content: str
     content_html: str
     location: str | None = None
+    location_metadata: dict[str, Any] | None = None
     published_at: datetime
 
 
@@ -54,11 +67,29 @@ def create_thought(payload: ThoughtCreate) -> ThoughtOut:
         db = _get_db()
         collection = db.collection(_collection_name())
         published_at = payload.published_at or datetime.now(timezone.utc)
-        location = payload.location.strip() if payload.location else None
+
+        city = _clean(payload.location_city)
+        state = _clean(payload.location_state)
+        country = _clean(payload.location_country)
+        display_location = _clean(payload.location)
+        if not display_location:
+            display_location = ", ".join([part for part in [city, state, country] if part]) or None
+
+        location_metadata: dict[str, Any] | None = None
+        if any(v is not None for v in [city, state, country, payload.location_lat, payload.location_lon]):
+            location_metadata = {
+                "city": city,
+                "state": state,
+                "country": country,
+                "lat": payload.location_lat,
+                "lon": payload.location_lon,
+            }
+
         doc = {
             "title": payload.title,
             "content": payload.content,
-            "location": location,
+            "location": display_location,
+            "location_metadata": location_metadata,
             "published_at": published_at,
             "created_at": datetime.now(timezone.utc),
         }
@@ -70,7 +101,8 @@ def create_thought(payload: ThoughtCreate) -> ThoughtOut:
             title=payload.title,
             content=payload.content,
             content_html=md.markdown(payload.content, extensions=["extra", "sane_lists"]),
-            location=location,
+            location=display_location,
+            location_metadata=location_metadata,
             published_at=published_at,
         )
     except Exception as exc:
@@ -96,6 +128,7 @@ def list_thoughts() -> list[ThoughtOut]:
                     content=item.get("content", ""),
                     content_html=md.markdown(item.get("content", ""), extensions=["extra", "sane_lists"]),
                     location=item.get("location"),
+                    location_metadata=item.get("location_metadata"),
                     published_at=published_at,
                 )
             )
